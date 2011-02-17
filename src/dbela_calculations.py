@@ -23,10 +23,10 @@ def compute_collapse_type(height_up,height_gf,beam_length,beam_depth,column_dept
 	if number_storeys > 1:
 		r_uf=(beam_depth/beam_length)/(column_depth/height_up)
 	
-	if max(r_gf, r_uf) > 1.5:
+	elif max(r_gf, r_uf) > 1.5:
 		collapse_type = 'Column Sway'
 		
-	if max(r_gf, r_uf) <= 1.5:
+	elif max(r_gf, r_uf) <= 1.5:
 		collapse_type = 'Beam Sway'
 	
 	return collapse_type
@@ -37,10 +37,10 @@ def compute_bs_efh(number_storeys):
 	if number_storeys <= 4:
 		efh = 0.64
 	
-	if number_storeys > 4 and number_storeys < 20 :
-		efh = 0.64-0,0125*(number_storeys-4)
+	elif number_storeys > 4 and number_storeys < 20 :
+		efh = 0.64-0.0125*(number_storeys-4)
 		
-	if number_storeys >= 20:
+	elif number_storeys >= 20:
 		efh = 0.44
 		
 	return efh
@@ -102,8 +102,8 @@ def compute_bs_disps(efh,height,ey,es_ls2,es_ls3,ec_ls2,ec_ls3,beam_depth,beam_l
 
 	displacements = []	
 	displacements.append(0.5*efh*height*ey*beam_length/beam_depth)
-	displacements.append(0.5*efh*height*ey*beam_length/beam_depth+0.5*(ec_ls2+es_ls2-1.7*ey)*efh[1]*height)
-	displacements.append(0.5*efh*height*ey*beam_length/beam_depth+0.5*(ec_ls3+es_ls3-1.7*ey)*efh[2]*height)
+	displacements.append(0.5*efh*height*ey*beam_length/beam_depth+0.5*(ec_ls2+es_ls2-1.7*ey)*efh*height)
+	displacements.append(0.5*efh*height*ey*beam_length/beam_depth+0.5*(ec_ls3+es_ls3-1.7*ey)*efh*height)
 
 	return displacements
 

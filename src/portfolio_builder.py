@@ -2,11 +2,14 @@
 This script produces a virtual building portfolio based on information stored in a common text file. 
 We might update this to NRML or something so we can refactor it a hundred times per week..
 """
-EXPOSURE = '/Users/vitorsilva/Documents/GEM/openquake/tests/data/Parameters_porfolio.txt'
+EXPOSURE = '/Users/vitorsilva/Documents/PhD/DBELA/data/parameters_porfolio.txt'
 
 import numpy
+import scipy
+from scipy import sqrt
+from scipy import log
 import math
-#from numpy import scipy
+from scipy import stats
 
 def parse_input(path):
 	
@@ -25,38 +28,45 @@ def buildings_counter(lines):
 		
 	return number_categories,number_assets 
 
-def compute_prob_value(mean, cov, distribution):
+def compute_prob_value(parameters, distribution):
+	mean = float(parameters[0])
+	stddev = float(parameters[1])/100*mean
 	
-	if distribution == normal:
-		result = scipy.stats.
+	if distribution == "normal":
+		result = stats.norm.rvs(mean,stddev)
 		
-	if distribution == lognormal:
-		result = scipy.stats.
+	elif distribution == "lognormal":
+		variance = stddev ** 2.0
+		mu = log(mean ** 2.0 / sqrt(variance + mean ** 2.0) )
+		sigma = sqrt(log((variance / mean ** 2.0) + 1.0))
+		result = stats.lognorm.rvs(sigma, scale=scipy.exp(mu))
 
-	if distribution == gamma:
-		result = scipy.stats.
+	elif distribution == "gamma":
+		betha = (stddev)**2/mean
+		alpha = mean/betha
+		result = stats.gamma.rvs(alpha,scale = betha)
 	
 	return result
 	
 
 def create_asset(lines, number_category):
-	print(lines[number_category])
+
 	asset=[]
 	asset.append(lines[number_category].split()[3])
-	asset.append(200000)
-	asset.append(400)
-	asset.append(3)
-	asset.append(3)
-	asset.append(2)
-	asset.append(0.6)
-	asset.append(0.5)
-	asset.append(10)
+	
+	for i in range(8):
+		parameters=[]
+		parameters.append(lines[number_category].split()[int(6+i*3)])
+		parameters.append(lines[number_category].split()[int(7+i*3)])
+		distribution = lines[number_category].split()[int(8+i*3)]
+		asset.append(compute_prob_value(parameters,distribution))
+	
+	asset.append(lines[number_category].split()[5])
+	
 	print(asset)
 		
 	return asset
 	
-
-
-	
+		
 if __name__ == "__main__":
 	print parse_input(EXPOSURE)
