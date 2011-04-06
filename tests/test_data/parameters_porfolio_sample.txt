@@ -1,0 +1,2 @@
+34.057	-118.238	Bare_Frame	low_code	7	3	210000	8	normal	399	17	normal	2.57	8	lognormal	3.1	11	lognormal	2.85	9	lognormal	0.5	34	normal	3.37	33	gamma	0.6	31	lognormal
+34.043	-117.312	Bare_Frame	low_code	4	2	209000	6	normal	412	17	normal	2.48	6	lognormal	3.2	10	lognormal	2.89	9	lognormal	0.4	45	normal	3.12	23	gamma	0.5	27	lognormal
