@@ -1,4 +1,1 @@
-34.057	-118.238	Bare_Frame	low_code	70	5	210000	8	normal	399	17	normal	2.57	8	lognormal	3.1	11	lognormal	2.85	9	lognormal	0.5	34	normal	3.37	33	gamma	0.6	31	lognormal
-34.043	-117.312	Bare_Frame	low_code	40	10	209000	6	normal	412	17	normal	2.48	6	lognormal	3.2	10	lognormal	2.89	9	lognormal	0.4	45	normal	3.12	23	gamma	0.5	27	lognormal
-34.057	-118.238	Bare_Frame	high_code	10	6	220000	9	normal	411	15	normal	2.5	7	lognormal	3.1	9	lognormal	2.77	8	lognormal	0.5	48	normal	3.22	38	gamma	0.6	30	lognormal
-34.043	-117.312	Bare_Frame	high_code	40	9	230000	5	normal	420	14	normal	2.43	5	lognormal	3.3	12	lognormal	2.71	6	lognormal	0.6	17	normal	3.5	25	gamma	0.4	23	lognormal
+34.057  -118.238    Bare_Frame  low_code    100 3   210000  8   normal  399 17  normal  2.57    8   lognormal   3.1 11  lognormal   2.85    9   lognormal   0.5 34  normal  3.37    33  gamma   0.6 31  lognormal

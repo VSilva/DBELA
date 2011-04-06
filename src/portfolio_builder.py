@@ -23,50 +23,54 @@ def buildings_counter(lines):
 	number_categories = len(lines)
 	number_assets = []
 	
-	for line in lines:		
+	for line in lines:	
 		number_assets.append(int(line.split('	')[4].strip()))
 		
 	return number_categories,number_assets 
 
-def compute_prob_value(parameters, distribution):
+def compute_prob_value(parameters, distribution, rvs):
 	mean = float(parameters[0])
 	stddev = float(parameters[1])/100*mean
 	
 	if distribution == "normal":
-		result = stats.norm.rvs(mean,stddev)
+		
+		if rvs is None:
+			rvs = stats.norm.rvs
+		result = rvs(mean,stddev)
 		
 	elif distribution == "lognormal":
 		variance = stddev ** 2.0
 		mu = log(mean ** 2.0 / sqrt(variance + mean ** 2.0) )
 		sigma = sqrt(log((variance / mean ** 2.0) + 1.0))
-		result = stats.lognorm.rvs(sigma, scale=scipy.exp(mu))
+		
+		if rvs is None:
+			rvs = stats.lognorm.rvs
+		result = rvs(sigma, scale=scipy.exp(mu))
 
 	elif distribution == "gamma":
 		betha = (stddev)**2/mean
 		alpha = mean/betha
-		result = stats.gamma.rvs(alpha,scale = betha)
+		
+		if rvs is None:
+			rvs = stats.gamma.rvs
+		result = rvs(alpha,scale = betha)
 	
 	return result
 	
 
-def create_asset(lines, number_category):
+def create_asset(line, rvs=None):
 
 	asset=[]
-	asset.append(lines[number_category].split()[3])
-	
+	asset.append(line.split()[2])	
+	asset.append(line.split()[3])
 	for i in range(8):
 		parameters=[]
-		parameters.append(lines[number_category].split()[int(6+i*3)])
-		parameters.append(lines[number_category].split()[int(7+i*3)])
-		distribution = lines[number_category].split()[int(8+i*3)]
-		asset.append(compute_prob_value(parameters,distribution))
+		parameters.append(line.split()[int(6+i*3)])
+		parameters.append(line.split()[int(7+i*3)])
+		distribution = line.split()[int(8+i*3)]
+		asset.append(compute_prob_value(parameters,distribution, rvs))
 	
-	asset.append(lines[number_category].split()[5])
-	
-	print(asset)
+	asset.append(line.split()[5])
 		
 	return asset
 	
-		
-if __name__ == "__main__":
-	print parse_input(EXPOSURE)

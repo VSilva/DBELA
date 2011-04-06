@@ -90,10 +90,4 @@ def compute_disp(accelerogram, period, damping):
 	
 	return THdisp
 
-	
-accelerogram = parse_acc(ACC)
-period = 0.5
-damping = 0.05
-
-compute_disp(accelerogram, period, damping)	
 log_file.close()
