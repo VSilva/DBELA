@@ -6,6 +6,7 @@ IMTVALUES= '/Users/vitorsilva/Documents/PhD/DBELA/data/imtvalues.txt'
 import spec_newmark
 import os
 import math
+import numpy
 from scipy import interpolate
 
 def parse_acc(path):
@@ -26,16 +27,19 @@ def parse_at2_acc(path):
     file.close
     accelerogram=[]
     counter=1
-    
+    mult=1
+    if lines[0] == 'European Strong-Motion Data\r\n':
+        mult=1/9.81
+
     for line in lines:
         if counter==4:
             dt = float(line.split()[1])
             time = -dt
         if counter>4:
-            values = line.strip().split('  ')
+            values = line.strip().split()
             for i in range(len(values)):
                 time=time+dt
-                accelerogram.append([time,float(values[i])])
+                accelerogram.append([time,float(values[i])*mult])
             
         counter = counter +1
         
@@ -121,6 +125,7 @@ def compute_demand_displacement(periods,spectraDisp,spectraPeriods,damping,ACCEL
                 for j in range(len(timeHistories)):
                     accValues.append(timeHistories[j][1])
                 accStep=timeHistories[2][0]-timeHistories[1][0]
+                print accs[accelerogram]
                 setDisp.append(spec_newmark.compute_disp(accValues, accStep, periods[i], damping)[0]*correctionFactors[i])
             else:
                 interpolator = interpolate.interp1d(spectraPeriods,spectraDisp[accelerogram], kind = 'linear')
@@ -135,7 +140,7 @@ def compute_equivalent_damping(structureType,parameters):
     
     equivalentDampings=[]
     
-    if structureType == 'Bare_Frame':
+    if structureType == 'Bare_Frame' or structureType == 'Infilled_Frame' :
         for ductility in parameters:
             equivalentDampings.append(0.05+0.565*(ductility-1)/(ductility*math.pi))
 
@@ -150,7 +155,7 @@ def compute_correction_factors(equivalentDampings):
     
     correctionFactors=[]
     for damping in equivalentDampings:
-        correctionFactors.append(math.sqrt(7/(2+damping)))
+        correctionFactors.append(math.sqrt(7/(2+damping*100)))
 
     return correctionFactors
     
@@ -167,14 +172,23 @@ def compute_imls_damage_states(elasticPeriods,ACCELEROGRAMS,IMTs,IMTVALUES):
     
     accs = [x for x in os.listdir(ACCELEROGRAMS) if x.upper()[-4:] == '.AT2']
     numberAccs=len(accs)
+    meanPeriod = numpy.mean(elasticPeriods)
+    print meanPeriod
     IMLs=[]
     
     if os.path.exists(IMTVALUES):
         imtValues=parse_IMT_values(IMTVALUES)
     
     for accelerogram in range(numberAccs):
+        print accs[accelerogram]
         setIMLs = []
-        position = -1   
+        position = -1
+        
+        accValues = []
+        timeHistories = parse_at2_acc(ACCELEROGRAMS+accs[accelerogram])
+        for i in range(len(timeHistories)):
+            accValues.append(timeHistories[i][1])
+            accStep=timeHistories[2][0]-timeHistories[1][0]   
         
         if os.path.exists(IMTVALUES):
             for i in range(len(imtValues)):
@@ -182,41 +196,36 @@ def compute_imls_damage_states(elasticPeriods,ACCELEROGRAMS,IMTs,IMTVALUES):
                     position = i
         
         if position >= 0:
-            for j in range(4):
+            for j in range(3):
                 setIMLs.append(float(imtValues[position][j+1]))
-        else:
-        
-            accValues = []
-            timeHistories = parse_at2_acc(ACCELEROGRAMS+accs[accelerogram])
-            for i in range(len(timeHistories)):
-                accValues.append(timeHistories[i][1])
-                accStep=timeHistories[2][0]-timeHistories[1][0]     
+        else:    
         
             for IMT in IMTs:
+
                 if IMT == 'PGA':
                     setIMLs.append(max([max(accValues) ,math.fabs(min(accValues))]))
-            
+                    
                 if IMT == 'PGV':
                     velValues=compute_velValues(accValues,accStep)
                     setIMLs.append(max([max(velValues) , math.fabs(min(velValues))]))
             
                 if IMT =='Sa03':
-                    setIMLs.append(spec_newmark.compute_disp(accValues, accStep, 0.3, 0.05)[1]) 
-                
-                if IMT == 'Saelastic':
-                    setIMLs.append(spec_newmark.compute_disp(accValues, accStep, elasticPeriods[0], 0.05)[1])   
-                        
+                    setIMLs.append(spec_newmark.compute_disp(accValues, accStep, 0.3, 0.05)[1])  
+      
+        setIMLs.append(spec_newmark.compute_disp(accValues, accStep,meanPeriod,0.05)[1])                
+
         IMLs.append(setIMLs)
     
     save_imlValues(IMTVALUES,accs,IMLs)
     
     return IMLs
     
+    
 def save_imlValues(IMTVALUES,accs,IMLs):
     
     out_file = open(IMTVALUES,"w")
     for i in range(len(accs)):
-        out_file.write(accs[i]+','+str(IMLs[i][0])+','+str(IMLs[i][1])+','+str(IMLs[i][2])+','+str(IMLs[i][3])+'\n')
+        out_file.write(accs[i]+','+str(IMLs[i][0])+','+str(IMLs[i][1])+','+str(IMLs[i][2])+'\n')
     out_file.close()
 
     
@@ -227,8 +236,24 @@ def parse_IMT_values(path):
     file.close
     imtValues=[]
     for line in lines:
-        imtValues.append( [line.split(',')[0], line.split(',')[1], line.split(',')[2], line.split(',')[3],line.strip('\n').split(',')[4]])
+        imtValues.append( [line.split(',')[0], line.split(',')[1], line.split(',')[2], line.strip('\n').split(',')[3]])
 
     return imtValues
+    
+    
+ACCELEROGRAMS = '/Users/vitorsilva/Documents/PhD/DBELA/data/accelerograms/'
+
+#accs = [x for x in os.listdir(ACCELEROGRAMS) if x.upper()[-4:] == '.AT2']
+
+
+#for acc in accs:
+
+ #   timeHistories = parse_at2_acc(ACCELEROGRAMS+acc)
+ #   accValues=[]
+ #   for i in range(len(timeHistories)):
+ #       accValues.append(timeHistories[i][1])
+ #       accStep=timeHistories[2][0]-timeHistories[1][0] 
+        
+
     
     

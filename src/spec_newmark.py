@@ -97,7 +97,6 @@ def compute_disp(accs, accstep, period, damping):
 	A0 = 0.0
 	A1 = 0.0
 	xie = damping
-
 	for i in range(int(M)):
 		U1 = (-ugh[i+1] + U0 / Beta_Parm / (dt*dt) + V0 / Beta_Parm / dt + (1.0 / 2.0 / Beta_Parm - 1.0) * A0 + (U0 * Gamma_Parm / Beta_Parm / dt + (Gamma_Parm / Beta_Parm - 1.0) * V0 + (Gamma_Parm / 2.0 / Beta_Parm - 1.0) * dt * A0) * 2.0 * xie * ncf) / (1.0 / Beta_Parm / (dt*dt) + 2.0 * xie * ncf * Gamma_Parm / Beta_Parm / dt + (ncf*ncf))
 		V1 = (U1 - U0) * Gamma_Parm / Beta_Parm / dt + (1.0 - Gamma_Parm / Beta_Parm) * V0 + (1.0 - Gamma_Parm / 2.0 / Beta_Parm) * dt * A0
@@ -106,7 +105,7 @@ def compute_disp(accs, accstep, period, damping):
 		V0 = V1
 		A0 = A1
 		THdsps.append(U1)
-		THvels.append(V1)
+#		THvels.append(V1)
 		THaccs.append(A1+ugh[i+1])
 		
 	Sa = max([math.fabs(min(THaccs)),max(THaccs)])
