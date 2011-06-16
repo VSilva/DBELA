@@ -31,20 +31,14 @@ def buildings_counter(lines):
 def compute_continuous_prob_value(parameters, distribution, rvs):
     mean = float(parameters[0])
     stddev = float(parameters[1])/100*mean
-    A = 0
-    B = float('inf')
-       
-    if len(parameters) > 2:
-        A = float(parameters[2])
-        B = float(parameters[3])
-    
+    A = float(parameters[2])
+    B = float(parameters[3])
     result = float('-inf')
        
     if rvs is None:
         while result <= A or result > B:
 
-            if distribution == "normal":
-        
+            if distribution == "normal":    
                 rvs = stats.norm.rvs
                 result = rvs(mean,stddev)
         
@@ -69,6 +63,10 @@ def compute_discrete_prob_value(parameters):
     
     x_values = parameters[0].split('-')
     PMF = parameters[1].split('-')
+    A = float(parameters[2])
+    B = float(parameters[3])
+    result = float('-inf')
+    
     CPMF = []
     CPMF.append(0)
     for i in range(len(PMF)):
@@ -76,8 +74,9 @@ def compute_discrete_prob_value(parameters):
         
     rand_value = stats.uniform.rvs()
     for i in range(len(PMF)):
-        if rand_value > CPMF[i] and rand_value < CPMF[i+1]: 
-            result = x_values[i]   
+        while result <= A or result > B:
+            if rand_value > CPMF[i] and rand_value < CPMF[i+1]: 
+                result = x_values[i]   
     
     return result
     
@@ -104,12 +103,10 @@ def create_asset(line, rvs=None):
         parameters=[]
         parameters.append(line.split()[int(6+pos+i*3)])
         parameters.append(line.split()[int(7+pos+i*3)])
-        distribution = line.split()[int(8+pos+i*3)]
-        if i== 4 or i == 6:
-            parameters.append(line.split()[int(8+pos+i*3)])
-            parameters.append(line.split()[int(9+pos+i*3)])
-            distribution = line.split()[int(10+pos+i*3)]
-            pos=pos+2
+        parameters.append(line.split()[int(8+pos+i*3)])
+        parameters.append(line.split()[int(9+pos+i*3)])
+        distribution = line.split()[int(10+pos+i*3)]
+        pos=pos+2
             
         if distribution != 'discrete':
             asset.append(compute_continuous_prob_value(parameters,distribution, rvs))

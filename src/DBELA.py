@@ -34,14 +34,11 @@ number_categories = int(assets_count[0])
 number_assets = assets_count[1]
 
 
-# CREATE THE VECTOR FOR THE DAMAGE STATES
+# CREATE THE VECTOR FOR THE DAMAGE STATES AND BETA FOR INFILLED FRAMES
 
 damageStates= numarray.zeros(4)
 IMTs=['PGA','PGV','Sa03','Saelastic']
 elasticPeriods = []
-
-# BETA VALUES FOR THE INFILLED STRUCTURES
-
 betas = [0.52, 0.46, 0.28] 
 
 # COMPUTE THE DISPLACAMENT FOR EACH BUILDING
@@ -73,31 +70,20 @@ for asset_category in range(number_categories):
             ec_ls2 = 0.0035
             ec_ls3 = 0.0150
             es_ls2 = 0.0150
-            es_ls3 = 0.0500 
+            es_ls3 = 0.0500
         
-        print height_up
-        print height_gf
-        collapse_type = capacity_calculations.compute_collapse_type(height_up,height_gf,beam_length,beam_depth,column_depth,number_storeys)
+        collapse_type = capacity_calculations.compute_collapse_type(structureType,height_up,height_gf,beam_length,beam_depth,column_depth,number_storeys)
         height = capacity_calculations.compute_height(height_up,height_gf,number_storeys)   
         
-        if collapse_type == "Beam Sway":
-            efh = capacity_calculations.compute_bs_efh(number_storeys)  
-            ductilities = capacity_calculations.compute_bs_ductility(es_ls2,es_ls3,ec_ls2,ec_ls3,ey,beam_length,beam_depth,structureType,betas)
-            periods = capacity_calculations.compute_periods(height,ductilities,structureType)
-            capacityDisp = capacity_calculations.compute_bs_disps(efh,height,ey,es_ls2,es_ls3,ec_ls2,ec_ls3,beam_depth,beam_length,structureType,betas)
-                                                              
-        elif collapse_type == "Column Sway":    
-            efh = capacity_calculations.compute_cs_efh(steel_modulos,steel_yield,es_ls2,es_ls3,ey)  
-            ductilities = capacity_calculations.compute_cs_ductility(es_ls2,es_ls3,ec_ls2,ec_ls3,ey,column_depth,height,efh,structureType,betas)
-            periods = capacity_calculations.compute_periods(height,ductilities,structureType) 
-            capacityDisp = capacity_calculations.compute_cs_disps(efh,height,ey,es_ls2,es_ls3,ec_ls2,ec_ls3,height_up,height_gf,column_depth,number_storeys,structureType,betas)
-        
-        else:
-            raise RuntimeError("unknown collapse type %s" % collapse_type)
-        
-        print height    
-        print periods 
-        elasticPeriods.append(periods[0])           
+        #Compute capacity displacement        
+        efh = capacity_calculations.compute_efh(collapse_type,number_storeys,steel_modulos,steel_yield,es_ls2,es_ls3,ey)
+        ductilities = capacity_calculations.compute_ductility(collapse_type,es_ls2,es_ls3,ec_ls2,ec_ls3,ey,beam_length,column_depth,beam_depth,height,efh,structureType,betas)           
+        periods = capacity_calculations.compute_periods(height,ductilities,structureType) 
+        capacityDisp = capacity_calculations.compute_disps(collapse_type,efh,height,ey,es_ls2,es_ls3,ec_ls2,ec_ls3,height_gf,height_up,column_depth,number_storeys,beam_depth,beam_length,structureType,betas)
+            
+        elasticPeriods.append(periods[0])  
+                 
+        #Compute demand displacement
         demandDisp = demand_calculations.compute_demand_displacement(periods,spectraDisp,spectraPeriods,damping,ACCELEROGRAMS,structureType,ductilities)
         DSpositions = damage_allocator.damage_state_position(capacityDisp, demandDisp)
 
@@ -118,6 +104,6 @@ for IMT in IMTs:
 #Result = fit_curve.compute_confident_intervals(setIMLs,LS1PEs,LS2PEs,LS3PEs,solution)
 #print Result
 
-damage_allocator.print_results(damageStates,imlDamageStates)
+#damage_allocator.print_results(damageStates,imlDamageStates)
 
 
