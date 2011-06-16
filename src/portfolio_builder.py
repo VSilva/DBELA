@@ -68,15 +68,15 @@ def compute_discrete_prob_value(parameters):
     result = float('-inf')
     
     CPMF = []
-    CPMF.append(0)
+    CPMF.append(0.0)
     for i in range(len(PMF)):
         CPMF.append(CPMF[i]+float(PMF[i]))
-        
-    rand_value = stats.uniform.rvs()
-    for i in range(len(PMF)):
-        while result <= A or result > B:
+
+    while result <= A or result > B:
+        rand_value = stats.uniform.rvs()
+        for i in range(len(PMF)):
             if rand_value > CPMF[i] and rand_value < CPMF[i+1]: 
-                result = x_values[i]   
+                result = float(x_values[i])
     
     return result
     
