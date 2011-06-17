@@ -5,6 +5,7 @@ This script contains the calculations required for a DBELA. The portfolio is gen
 import linecache
 import numpy
 import math
+import portfolio_builder
 
 
 def parse_input(path,ith):
@@ -13,10 +14,18 @@ def parse_input(path,ith):
         
     return line  
     
-def compute_collapse_type(structureType,height_up,height_gf,beam_length,beam_depth,column_depth,number_storeys):
+def compute_collapse_type(data):
     
+    structureType=data[0]
+    number_storeys=data[2]
+    height_up=data[5]
+    height_gf=data[10]
+    column_depth=data[7]
+    beam_length=data[8]
+    beam_depth=data[9]
+      
     if structureType == 'Frame_Wall':
-        collapse_type = 'Shear Sway'
+        collapse_type = 'Mixed Sway'
         
     else:
         r_gf = (beam_depth/beam_length)/(column_depth/height_gf)
@@ -33,71 +42,73 @@ def compute_collapse_type(structureType,height_up,height_gf,beam_length,beam_dep
     return collapse_type
     
     
-def compute_efh(collapse_type,number_storeys,steel_modulos,steel_yield,es_ls2,es_ls3,ey):
+def compute_efh(data,collapse_type):
     
-    if collapse_type == 'Beam Sway':
+    structureType=data[0]
+    number_storeys=data[2]    
+    steel_modulos=data[3]
+    steel_yield=data[4]
+    ec_ls2=data[12]
+    ec_ls3=data[13]
+    es_ls2=data[14]
+    es_ls3=data[15]
+    ey = steel_yield/steel_modulos
+    
+    if structureType == 'Bare_Frame' or structureType == 'Infilled_Frame':
         
-        if number_storeys <= 4:
-            efh = 0.64
-        elif number_storeys > 4 and number_storeys < 20 :
-            efh = 0.64-0.0125*(number_storeys-4)
-        elif number_storeys >= 20:
-            efh = 0.44
+        if collapse_type == 'Beam Sway':
+        
+            if number_storeys <= 4:
+                efh = 0.64
+            elif number_storeys > 4 and number_storeys < 20 :
+                efh = 0.64-0.0125*(number_storeys-4)
+            elif number_storeys >= 20:
+                efh = 0.44
             
-    if collapse_type == 'Column Sway': 
-        efh = []
-        efh.append(0.67)
-        efh.append(0.67-0.17*(es_ls2-ey)/es_ls2)
-        efh.append(0.67-0.17*(es_ls3-ey)/es_ls3)
-
+        if collapse_type == 'Column Sway': 
+            efh = []
+            efh.append(0.67)
+            efh.append(0.67-0.17*(es_ls2-ey)/es_ls2)
+            efh.append(0.67-0.17*(es_ls3-ey)/es_ls3)
+            
+    if structureType == 'Frame_Wall':
+        
+        parameters = []
+        parameters.append(0.61) #Mean of Heff/Ht
+        parameters.append(11)   #COV of Heff/Ht
+        parameters.append(0.5) #Lower bound
+        parameters.append(0.7) #Upper bound
+        distribution = 'normal'
+        efh = portfolio_builder.compute_continuous_prob_value(parameters,distribution,rvs=None)
+        
     return efh
     
-    
-def compute_height(height_up,height_gf,number_storeys):
-    
-    height = height_gf + (number_storeys-1)*height_up
-    
-    return height
 
-def compute_ductility(collapse_type,es_ls2,es_ls3,ec_ls2,ec_ls3,ey,beam_length,column_depth,beam_depth,height,efh,structureType,betas):
+def compute_ductility(capacityDisp):
     
     ductilities = []
     
-    if structureType == 'Bare_Frame':
-        
-        if collapse_type == 'Beam Sway':
-            ductilities.append(1.0)
-            ductilities.append(1+(ec_ls2 + es_ls2 - 1.7*ey)*beam_depth/(ey*beam_length))
-            ductilities.append(1+(ec_ls3 + es_ls3 - 1.7*ey)*beam_depth/(ey*beam_length))
-                    
-        if collapse_type == 'Column Sway':   
-            ductilities.append(1.0)
-            ductilities.append(1.0+(ec_ls2 + es_ls2 - 2.14*ey)*column_depth/(0.86*efh[1]*height*ey))
-            ductilities.append(1.0+(ec_ls3 + es_ls3 - 2.14*ey)*column_depth/(0.86*efh[2]*height*ey))            
-            
-    if structureType == 'Infilled_Frame':
-
-        if collapse_type == 'Beam Sway':
-            ductilities.append(1.0)
-            ductilities.append(1+(ec_ls2 + es_ls2 - 1.7*ey)*beam_depth*betas[1]/(ey*beam_length))
-            ductilities.append(1+(ec_ls3 + es_ls3 - 1.7*ey)*beam_depth*betas[2]/(ey*beam_length))  
-
-        if collapse_type == 'Column Sway':        
-            ductilities.append(1.0)
-            ductilities.append(1.0+(ec_ls2 + es_ls2 - 2.14*ey)*column_depth*betas[1]/(0.86*efh[1]*height*ey))
-            ductilities.append(1.0+(ec_ls3 + es_ls3 - 2.14*ey)*column_depth*betas[2]/(0.86*efh[2]*height*ey))
+    for i in range(len(capacityDisp)):
+        ductilities.append(capacityDisp[i]/capacityDisp[0])
 
     return ductilities
     
     
-def compute_periods(height,ductilities,structureType):
+def compute_periods(data,ductilities):
+    
+    structureType=data[0]
+    height=data[11] 
     
     periods = []
+    
     if structureType == 'Bare_Frame':
         periods.append(0.1*height)
     
     if structureType == 'Infilled_Frame':
         periods.append(0.055*height)
+        
+    if structureType == 'Frame_Wall':
+        periods.append(0.097*height)
     
     periods.append(periods[0]*math.sqrt(ductilities[1]))
     periods.append(periods[0]*math.sqrt(ductilities[2]))
@@ -105,9 +116,40 @@ def compute_periods(height,ductilities,structureType):
     return periods
 
    
-def compute_disps(collapse_type,efh,height,ey,es_ls2,es_ls3,ec_ls2,ec_ls3,height_gf,height_up,column_depth,number_storeys,beam_depth,beam_length,structureType,betas):
+def compute_disps(data,collapse_type,efh): 
+    
+    structureType=data[0]
+    number_storeys=data[2]
+    steel_modulos=data[3]
+    steel_yield=data[4]
+    height_up=data[5]
+    height_gf=data[10]
+    
+    if structureType == 'Bare_Frame' or structureType == 'Infilled_Frame':
+        column_depth=data[7]
+        beam_length=data[8]
+        beam_depth=data[9]
+        height=data[11]
+        ec_ls2=data[12]
+        ec_ls3=data[13]
+        es_ls2=data[14]
+        es_ls3=data[15]
+        betas=data[16]  
+        
+    if structureType == 'Frame_Wall':
+        steel_ult=data[7]
+        wall_length=data[8]
+        rebar_diameter=data[9]
+        height=data[11]
+        ec_ls2=data[12]
+        ec_ls3=data[13]
+        es_ls2=data[14]
+        es_ls3=data[15]
+        betas=data[16]
+    
+    ey = steel_yield/steel_modulos
 
-    displacements = []  
+    displacements = [] 
 
     if structureType == 'Bare_Frame':
         

@@ -104,8 +104,9 @@ def compute_spectra_periods(minPeriod,maxPeriod,step):
     
     return spectraPeriods   
 
-def compute_demand_displacement(periods,spectraDisp,spectraPeriods,damping,ACCELEROGRAMS,structureType,ductilities):
+def compute_demand_displacement(data,periods,spectraDisp,spectraPeriods,damping,ACCELEROGRAMS,ductilities):
     
+    structureType=data[0]
     minPeriod = min(spectraPeriods)
     maxPeriod = max(spectraPeriods)
     accs = [x for x in os.listdir(ACCELEROGRAMS) if x.upper()[-4:] == '.AT2']

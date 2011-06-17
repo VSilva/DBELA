@@ -17,7 +17,6 @@ import damage_allocator
 import fit_curve
 
 # COMPUTE THE SPECTRA BASED ON A SET OF ACCELEROGRAMS
-
 minPeriod = 0.05
 maxPeriod = 10.0
 step = 0.04
@@ -33,9 +32,7 @@ assets_count = portfolio_builder.buildings_counter(lines)
 number_categories = int(assets_count[0])
 number_assets = assets_count[1]
 
-
 # CREATE THE VECTOR FOR THE DAMAGE STATES AND BETA FOR INFILLED FRAMES
-
 damageStates= numarray.zeros(4)
 IMTs=['PGA','PGV','Sa03','Saelastic']
 elasticPeriods = []
@@ -46,19 +43,7 @@ for asset_category in range(number_categories):
     for asset in range(number_assets[asset_category]):
 
         data = portfolio_builder.create_asset(lines[asset_category])
-        print data
-        structureType=data[0]
         code=data[1]
-        steel_modulos=float(data[2])
-        steel_yield=float(data[3])
-        height_up=float(data[4])
-        ratio_guf=float(data[5])
-        column_depth=float(data[6])
-        beam_length=float(data[7])
-        beam_depth=float(data[8])
-        number_storeys=int(data[9])
-        ey = steel_yield/steel_modulos
-        height_gf=height_up*ratio_guf
 
         if code == "Low_Code":
             ec_ls2 = 0.0035
@@ -72,21 +57,27 @@ for asset_category in range(number_categories):
             es_ls2 = 0.0150
             es_ls3 = 0.0500
         
-        collapse_type = capacity_calculations.compute_collapse_type(structureType,height_up,height_gf,beam_length,beam_depth,column_depth,number_storeys)
-        height = capacity_calculations.compute_height(height_up,height_gf,number_storeys)   
+        data.append(ec_ls2)
+        data.append(ec_ls3)
+        data.append(es_ls2)
+        data.append(es_ls3)
+        data.append(betas)
+        
+        print data
+           
+        collapse_type = capacity_calculations.compute_collapse_type(data)        
         
         #Compute capacity displacement        
-        efh = capacity_calculations.compute_efh(collapse_type,number_storeys,steel_modulos,steel_yield,es_ls2,es_ls3,ey)
-        ductilities = capacity_calculations.compute_ductility(collapse_type,es_ls2,es_ls3,ec_ls2,ec_ls3,ey,beam_length,column_depth,beam_depth,height,efh,structureType,betas)           
-        periods = capacity_calculations.compute_periods(height,ductilities,structureType) 
-        capacityDisp = capacity_calculations.compute_disps(collapse_type,efh,height,ey,es_ls2,es_ls3,ec_ls2,ec_ls3,height_gf,height_up,column_depth,number_storeys,beam_depth,beam_length,structureType,betas)
+        efh = capacity_calculations.compute_efh(data,collapse_type)
+        capacityDisp = capacity_calculations.compute_disps(data,collapse_type,efh)
+        ductilities = capacity_calculations.compute_ductility(capacityDisp)           
+        periods = capacity_calculations.compute_periods(data,ductilities) 
             
         elasticPeriods.append(periods[0])  
                  
         #Compute demand displacement
-        demandDisp = demand_calculations.compute_demand_displacement(periods,spectraDisp,spectraPeriods,damping,ACCELEROGRAMS,structureType,ductilities)
+        demandDisp = demand_calculations.compute_demand_displacement(data,periods,spectraDisp,spectraPeriods,damping,ACCELEROGRAMS,ductilities)
         DSpositions = damage_allocator.damage_state_position(capacityDisp, demandDisp)
-
         damageStates=damageStates+DSpositions
 
 # Compute the imls for each accelerogram    

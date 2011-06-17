@@ -83,23 +83,42 @@ def compute_discrete_prob_value(parameters):
 
 def create_asset(line, rvs=None):
     
-    # data 0 - structure type
-    # data 1 - code level
-    # data 2 - steel strain
-    # data 3 - steel strengh
-    # data 4 - Upper floor height
-    # data 5 - Ground/upper floor height ratio	
-    # data 6 - Column depth
-    # data 7 - Beam length
-    # data 8 - Beam depth  
-    # data 9 - number of storeys
+    #FOR FRAME STRUCTURES
+    # data 0  - Structure type
+    # data 1  - Code level
+    # data 2  - Number of storeys
+    # data 3  - Steel strain
+    # data 4  - Steel yield strength
+    # data 5  - Upper floor height
+    # data 6  - Ground/upper floor height ratio	
+    # data 7  - Column depth
+    # data 8  - Beam length
+    # data 9  - Beam depth  
+    # data 10 - Height ground floor
+    # data 11 - Total height
+    
+    #FOR FRAME-WALL STRUCTURES
+    # data 0  - Structure type
+    # data 1  - Code level
+    # data 2  - Number of storeys
+    # data 3  - Steel strain
+    # data 4  - Steel yield strength
+    # data 5  - Upper floor height
+    # data 6  - Ground/upper floor height ratio	 
+    # data 7  - Steel ultimate strength
+    # data 8  - Wall length
+    # data 9  - Diameter of vertical rebars
+    # data 10 - Height ground floor
+    # data 11 - Total height
 																	
     asset=[]
     asset.append(line.split()[2]) # structure type (bare-frame, dual frame wall)
     asset.append(line.split()[3]) # code level
+    asset.append(int(line.split()[5])) # number of storeys
     pos=0
-    
-    for i in range(7):
+    noParameters = (len(line.split())-6)/5
+
+    for i in range(noParameters):
         parameters=[]
         parameters.append(line.split()[int(6+pos+i*3)])
         parameters.append(line.split()[int(7+pos+i*3)])
@@ -113,7 +132,19 @@ def create_asset(line, rvs=None):
         else:
             asset.append(compute_discrete_prob_value(parameters))          
     
-    asset.append(line.split()[5]) # number of storeys
-        
+    height_up = asset[5]
+    number_storeys = asset[2]
+    height_gf = asset[5]*asset[6]
+    height = compute_height(height_up,height_gf,number_storeys)
+    
+    asset.append(height_gf)
+    asset.append(height)
+    
     return asset
+    
+def compute_height(height_up,height_gf,number_storeys):
+
+    height = height_gf + (number_storeys-1)*height_up
+
+    return height
     
