@@ -20,6 +20,7 @@ def parse_acc(path):
     
     return accelerogram
     
+    
 def parse_at2_acc(path):
     
     file=open(path)
@@ -45,6 +46,7 @@ def parse_at2_acc(path):
         
     return accelerogram
 
+
 def parse_spectrum(path):
     
     file=open(path)
@@ -55,6 +57,7 @@ def parse_spectrum(path):
         spectrum.append(float(line.split()[1]))
     
     return spectrum
+
 
 def compute_spectra(minPeriod,maxPeriod,step,damping,ACCELEROGRAMS,SPECTRA):
 
@@ -104,6 +107,7 @@ def compute_spectra_periods(minPeriod,maxPeriod,step):
     
     return spectraPeriods   
 
+
 def compute_demand_displacement(data,periods,spectraDisp,spectraPeriods,damping,ACCELEROGRAMS,ductilities):
     
     structureType=data[0]
@@ -114,7 +118,9 @@ def compute_demand_displacement(data,periods,spectraDisp,spectraPeriods,damping,
     demandDisp=[]
     
     equivalentDampings = compute_equivalent_damping(structureType,ductilities)
+    #print equivalentDampings
     correctionFactors = compute_correction_factors(equivalentDampings) 
+    #print correctionFactors
     
     for accelerogram in range(numberAccs):
         setDisp = []
@@ -136,6 +142,19 @@ def compute_demand_displacement(data,periods,spectraDisp,spectraPeriods,damping,
         
     return demandDisp
     
+    
+def compute_Beta():
+
+    parameters = []
+    parameters.append(0.12) #Mean of Heff/Ht
+    parameters.append(60)   #COV of Heff/Ht
+    parameters.append(0.04) #Lower bound
+    parameters.append(0.40) #Upper bound
+    distribution = 'normal'
+    Beta = portfolio_builder.compute_continuous_prob_value(parameters,distribution,rvs=None)
+
+    return Beta
+    
 
 def compute_equivalent_damping(structureType,parameters):
     
@@ -145,9 +164,17 @@ def compute_equivalent_damping(structureType,parameters):
         for ductility in parameters:
             equivalentDampings.append(0.05+0.565*(ductility-1)/(ductility*math.pi))
 
-    if structureType == 'Wall_Frame':
+    if structureType == 'Frame_Wall':
+        Beta = compute_Beta()
         for ductility in parameters:
-            equivalentDampings.append(0.05+0.444*(ductility-1)/(ductility*math.pi))
+            Ew = 0.05+0.444*(ductility-1)/(ductility*math.pi)
+            Ef = 0.05+0.565*(ductility-1)/(ductility*math.pi)
+            equivalentDampings.append((Ew*Beta+Ef*(1-Beta))/Beta)
+            
+    if structureType == 'Masonry_Timber' or structureType == 'Masonry_Concrete':
+        equivalentDampings.append(0.05)
+        equivalentDampings.append(0.10)
+        equivalentDampings.append(0.15)  
     
     return equivalentDampings
 
@@ -160,12 +187,14 @@ def compute_correction_factors(equivalentDampings):
 
     return correctionFactors
     
+    
 def compute_velValues(accValues,accStep):
     
     velValues = []
     velValues.append(0)
     for i in range(len(accValues)-1):
         velValues.append((velValues[i]+(accValues[i]*9.81+accValues[i+1]*9.81)*accStep*0.5))
+    
     return velValues
         
     
@@ -240,21 +269,6 @@ def parse_IMT_values(path):
         imtValues.append( [line.split(',')[0], line.split(',')[1], line.split(',')[2], line.strip('\n').split(',')[3]])
 
     return imtValues
-    
-    
-ACCELEROGRAMS = '/Users/vitorsilva/Documents/PhD/DBELA/data/accelerograms/'
-
-#accs = [x for x in os.listdir(ACCELEROGRAMS) if x.upper()[-4:] == '.AT2']
-
-
-#for acc in accs:
-
- #   timeHistories = parse_at2_acc(ACCELEROGRAMS+acc)
- #   accValues=[]
- #   for i in range(len(timeHistories)):
- #       accValues.append(timeHistories[i][1])
- #       accStep=timeHistories[2][0]-timeHistories[1][0] 
-        
 
     
     

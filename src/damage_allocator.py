@@ -56,6 +56,21 @@ def print_results(damageStates,imlDamageStates):
     out_file.close()
     out_file2.close()
     out_file3.close()
+    
+    
+def print_vulnerability_function_ASCII(finalVulFunc,VULFUNC):
+    
+    toPrint = numpy.array(finalVulFunc).transpose()
+    out_file = open(VULFUNC,"w")
+    
+    for values in toPrint:
+        string = ''
+        for i in range(len(values)):
+            string = string + str(values[i]) + '\t'
+        string = string.strip() + '\n'
+        out_file.write(string)
+    
+    out_file.close() 
         
 if __name__ == "__main__":
     print 'ok'

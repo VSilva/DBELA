@@ -87,7 +87,7 @@ def create_asset(line, rvs=None):
     # data 0  - Structure type
     # data 1  - Code level
     # data 2  - Number of storeys
-    # data 3  - Steel strain
+    # data 3  - Steel modulus
     # data 4  - Steel yield strength
     # data 5  - Upper floor height
     # data 6  - Ground/upper floor height ratio	
@@ -101,7 +101,7 @@ def create_asset(line, rvs=None):
     # data 0  - Structure type
     # data 1  - Code level
     # data 2  - Number of storeys
-    # data 3  - Steel strain
+    # data 3  - Steel modulus
     # data 4  - Steel yield strength
     # data 5  - Upper floor height
     # data 6  - Ground/upper floor height ratio	 
@@ -110,6 +110,20 @@ def create_asset(line, rvs=None):
     # data 9  - Diameter of vertical rebars
     # data 10 - Height ground floor
     # data 11 - Total height
+    
+    #FOR MASONRY STRUCTURES
+    # data 0  - Structure type
+    # data 1  - Code level
+    # data 2  - Number of storeys
+    # data 3  - Height per floor
+    # data 4  - Pier height
+    # data 5  - Yield drift
+    # data 6  - LS2 drift
+    # data 7  - LS3 drift
+    # data 8  - k1
+    # data 9  - k2
+    # data 10 - Total height
+    # data 11 - Total pier height
 																	
     asset=[]
     asset.append(line.split()[2]) # structure type (bare-frame, dual frame wall)
@@ -132,13 +146,21 @@ def create_asset(line, rvs=None):
         else:
             asset.append(compute_discrete_prob_value(parameters))          
     
-    height_up = asset[5]
+    structureType = asset[0]
     number_storeys = asset[2]
-    height_gf = asset[5]*asset[6]
-    height = compute_height(height_up,height_gf,number_storeys)
     
-    asset.append(height_gf)
-    asset.append(height)
+    if structureType == 'Masonry_Timber' or structureType == 'Masonry_Concrete':
+        total_height = number_storeys*asset[3]
+        total_Pheight = number_storeys*asset[4]
+        asset.append(total_Pheight)
+        asset.append(total_height)
+              
+    else:
+        height_up = asset[5]
+        height_gf = asset[5]*asset[6]
+        height = compute_height(height_up,height_gf,number_storeys)
+        asset.append(height_gf)
+        asset.append(height)
     
     return asset
     

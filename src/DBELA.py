@@ -1,7 +1,8 @@
 ACCELEROGRAMS = '/Users/vitorsilva/Documents/PhD/DBELA/data/accelerograms/'
-SPECTRA= '/Users/vitorsilva/Documents/PhD/DBELA/data/spectra/'
+SPECTRA = '/Users/vitorsilva/Documents/PhD/DBELA/data/spectra/'
 EXPOSURE = '/Users/vitorsilva/Documents/PhD/DBELA/data/parameters_porfolio.txt'
-IMTVALUES= '/Users/vitorsilva/Documents/PhD/DBELA/data/imtvalues.txt'
+IMTVALUES = '/Users/vitorsilva/Documents/PhD/DBELA/data/imtvalues.txt'
+VULFUNC = '/Users/vitorsilva/Documents/PhD/DBELA/vulnerabilityfunction.txt'
 
 import numpy
 from scipy import stats
@@ -47,15 +48,19 @@ for asset_category in range(number_categories):
 
         if code == "Low_Code":
             ec_ls2 = 0.0035
-            ec_ls3 = 0.0075
+        #    ec_ls3 = 0.0075
             es_ls2 = 0.0150
-            es_ls3 = 0.0350
+        #    es_ls3 = 0.0350
+        #    ec_ls2 =  portfolio_builder.compute_continuous_prob_value([0.0035,1,0,'inf'], 'lognormal', rvs=None)
+            ec_ls3 =  portfolio_builder.compute_continuous_prob_value([0.0075,30,0,'inf'], 'normal', rvs=None)
+        #    es_ls2 =  portfolio_builder.compute_continuous_prob_value([0.015,2,0,'inf'], 'normal', rvs=None)
+            es_ls3 =  portfolio_builder.compute_continuous_prob_value([0.035,30,0,'inf'], 'normal', rvs=None)          
         
         if code == "High_Code":
             ec_ls2 = 0.0035
-            ec_ls3 = 0.0150
-            es_ls2 = 0.0150
-            es_ls3 = 0.0500
+            ec_ls3 = 0.020
+            es_ls2 = 0.035
+            es_ls3 = 0.060
         
         data.append(ec_ls2)
         data.append(ec_ls3)
@@ -63,38 +68,42 @@ for asset_category in range(number_categories):
         data.append(es_ls3)
         data.append(betas)
         
-        print data
+   #     print data
            
         collapse_type = capacity_calculations.compute_collapse_type(data)        
-        
+        collapse_type = 'Beam Sway'
         #Compute capacity displacement        
-        efh = capacity_calculations.compute_efh(data,collapse_type)
-        capacityDisp = capacity_calculations.compute_disps(data,collapse_type,efh)
+        capacityDisp = capacity_calculations.compute_disps(data,collapse_type)
         ductilities = capacity_calculations.compute_ductility(capacityDisp)           
         periods = capacity_calculations.compute_periods(data,ductilities) 
-            
         elasticPeriods.append(periods[0])  
                  
         #Compute demand displacement
         demandDisp = demand_calculations.compute_demand_displacement(data,periods,spectraDisp,spectraPeriods,damping,ACCELEROGRAMS,ductilities)
         DSpositions = damage_allocator.damage_state_position(capacityDisp, demandDisp)
         damageStates=damageStates+DSpositions
+        print capacityDisp
+ #       print demandDisp
+#        print ductilities
+ #       print periods
 
 # Compute the imls for each accelerogram    
 imlDamageStates = demand_calculations.compute_imls_damage_states(elasticPeriods,ACCELEROGRAMS,IMTs,IMTVALUES)
-for IMT in IMTs:
-    IMLs = fit_curve.extract_IMLs(imlDamageStates,IMT)
-    print IMT
-    for DS in range(3):
-        PEs = fit_curve.extract_PEs(damageStates,DS)
-        x0 = [-2,0.6]
-        solution, flag = leastsq(fit_curve.residuals, x0, args=(PEs, IMLs))
-        print solution[0], solution[1], fit_curve.compute_correlation_coefficient(PEs,IMLs,solution)
 
-#setIMLs,LS1PEs,LS2PEs,LS3PEs = fit_curve.generate_synthetic_datasets(IMLs,damageStates,100)
-#Result = fit_curve.compute_confident_intervals(setIMLs,LS1PEs,LS2PEs,LS3PEs,solution)
-#print Result
+# Compute the best logarithmic mean and standard deviation for each curve
+fit_curve.compute_best_curves(imlDamageStates,damageStates,IMTs)          
 
-#damage_allocator.print_results(damageStates,imlDamageStates)
+# Compute statistics for each fragility curve
+setIMLs,LS1PEs,LS2PEs,LS3PEs = fit_curve.generate_synthetic_datasets(imlDamageStates,damageStates,5)
+statistics = fit_curve.compute_statistics(setIMLs,LS1PEs,LS2PEs,LS3PEs)
 
+# Compute Vulnerability functions
+                                                            
+setMeanStddev = fit_curve.compute_set_mean_stddev(statistics,25)
+imls, vulFunc = fit_curve.compute_vulnerability_functions(imlDamageStates, setMeanStddev,25)
+finalVulFunc = fit_curve.compute_final_vulnerability_function(imls, vulFunc)
+print finalVulFunc
 
+# Extract values
+damage_allocator.print_vulnerability_function_ASCII(finalVulFunc,VULFUNC)
+damage_allocator.print_results(damageStates,imlDamageStates)

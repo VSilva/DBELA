@@ -4,7 +4,9 @@ from scipy.optimize import leastsq
 import scipy 
 from scipy import stats
 from numpy import random
-
+from scipy import linalg
+from numpy import numarray
+import portfolio_builder
 
 def extract_POs(damageStates,DS):
     
@@ -88,13 +90,15 @@ def residuals(coeffs, y, x):
         res.append(y[i] - cumulative_lognormal_model(x[i], coeffs))
     return res
     
-def generate_synthetic_datasets(IMLs,damageStates,numberDatasets):
-    
+def generate_synthetic_datasets(imlDamageStates,damageStates,numberDatasets):
+
+    IMLs = extract_IMLs(imlDamageStates,'PGA')
     sizeDataset=len(IMLs)
     setIMLs = []
     LS1PEs = []
     LS2PEs = []
     LS3PEs = []
+
     
     allPEs=[extract_PEs(damageStates,0),extract_PEs(damageStates,1) ,extract_PEs(damageStates,2)]
             
@@ -103,7 +107,7 @@ def generate_synthetic_datasets(IMLs,damageStates,numberDatasets):
         subLS1PEs=[]
         subLS2PEs=[]
         subLS3PEs=[]
-        for j in range(sizeDataset):
+        for j in range(int(sizeDataset)):
             k = random.random_integers(0,sizeDataset-1)
             subsetIMLs.append(IMLs[k])
             subLS1PEs.append(allPEs[0][k])
@@ -116,7 +120,7 @@ def generate_synthetic_datasets(IMLs,damageStates,numberDatasets):
     
     return setIMLs,LS1PEs,LS2PEs,LS3PEs
     
-def compute_confident_intervals(setIMLs,LS1PEs,LS2PEs,LS3PEs,x0):
+def compute_statistics(setIMLs,LS1PEs,LS2PEs,LS3PEs):
     
     numberDatasets = len(setIMLs)
     sizeDataset = len(setIMLs[0])
@@ -126,11 +130,16 @@ def compute_confident_intervals(setIMLs,LS1PEs,LS2PEs,LS3PEs,x0):
     LS2sigma = []
     LS3mean = []
     LS3sigma = []
+
+    x1, flag = leastsq(residuals, [-2,0.6], args=(LS1PEs[0], setIMLs[0]))
+    x2, flag = leastsq(residuals, [-1,0.6], args=(LS2PEs[0], setIMLs[0]))
+    x3, flag = leastsq(residuals, [ 0,0.6], args=(LS3PEs[0], setIMLs[0]))
     
     for i in range(numberDatasets):
-        LS1solution, flag = leastsq(residuals, x0, args=(LS1PEs[i], setIMLs[i]))
-        LS2solution, flag = leastsq(residuals, x0, args=(LS2PEs[i], setIMLs[i]))
-        LS3solution, flag = leastsq(residuals, x0, args=(LS3PEs[i], setIMLs[i]))
+        LS1solution, flag = leastsq(residuals, x1, args=(LS1PEs[i], setIMLs[i]))
+        LS2solution, flag = leastsq(residuals, x2, args=(LS2PEs[i], setIMLs[i]))
+        LS3solution, flag = leastsq(residuals, x3, args=(LS3PEs[i], setIMLs[i]))
+        print i
         
         LS1mean.append(LS1solution[0])
         LS1sigma.append(LS1solution[1])  
@@ -138,29 +147,10 @@ def compute_confident_intervals(setIMLs,LS1PEs,LS2PEs,LS3PEs,x0):
         LS2sigma.append(LS2solution[1])
         LS3mean.append(LS3solution[0])
         LS3sigma.append(LS3solution[1])
-    
-  #  for i in range(numberDatasets):
-  #      print LS1mean[i]
         
-  #  for i in range(numberDatasets):
-  #      print LS2mean[i]
-    
-  #  for i in range(numberDatasets):
-  #      print LS3mean[i]
-    
-  #  for i in range(numberDatasets):  
-  #      print LS1sigma[i]
-    
-  #  for i in range(numberDatasets):  
-  #      print LS2sigma[i]
-              
-  #  for i in range(numberDatasets):  
-  #      print LS3sigma[i]    
-    
-        
-    
     statistics = [LS1mean,LS1sigma,LS2mean,LS2sigma,LS3mean,LS3sigma]
-    print numpy.corrcoef(statistics)
+    correlationFactors = numpy.corrcoef(statistics)
+    covarianceMatrix = numpy.cov(statistics)
         
     LS1Mean_mean = scipy.mean(LS1mean)
     LS1StdDev_mean = scipy.std(LS1mean,ddof=1)
@@ -175,14 +165,12 @@ def compute_confident_intervals(setIMLs,LS1PEs,LS2PEs,LS3PEs,x0):
     LS3Mean_mean = scipy.mean(LS3mean)
     LS3StdDev_mean = scipy.std(LS3mean,ddof=1)
     LS3Mean_sigma = scipy.mean(LS3sigma)
-    LS3StdDev_sigma = scipy.std(LS3sigma,ddof=1)
+    LS3StdDev_sigma = scipy.std(LS3sigma,ddof=1)  
     
-  #  LS1LL_mean = LS1Mean_mean-1.96*LS1StdDev_mean
-  #  LS1UL_mean = LS1Mean_mean+1.96*LS1StdDev_mean 
-  #  LS1LL_sigma = LS1Mean_sigma-1.96*LS1StdDev_sigma
-  #  LS1UL_sigma = LS1Mean_sigma+1.96*LS1StdDev_sigma    
+    means=[LS1Mean_mean, LS1Mean_sigma, LS2Mean_mean, LS2Mean_sigma, LS3Mean_mean, LS3Mean_sigma]
                  
-    return LS1Mean_mean, LS1Mean_sigma, LS1StdDev_mean, LS1StdDev_sigma, LS2Mean_mean, LS2Mean_sigma, LS2StdDev_mean, LS2StdDev_sigma, LS3Mean_mean, LS3Mean_sigma, LS3StdDev_mean, LS3StdDev_sigma  
+    return means, correlationFactors,covarianceMatrix 
+
 
 def compute_correlation_coefficient(PEs,IMLs,solution):
     
@@ -190,28 +178,93 @@ def compute_correlation_coefficient(PEs,IMLs,solution):
         
     return numpy.corrcoef(PEs, PEsEst)[0][1]
     
-def compute_CI(mu,sigma,n,confidenceLevel):
     
-    chisq050 = 170
-    chisq950 = 255
-    t90 = 1.645
+def compute_best_curves(imlDamageStates,damageStates,IMTs):
     
-    muUL = mu - 1.645*sigma/math.sqrt(n-1)
-    muLL = mu + 1.645*sigma/math.sqrt(n-1)
-    sigmaLL = sigma*math.sqrt(n-1)/chisq950
-    sigmaUL = sigma*math.sqrt(n-1)/chisq050
+    for IMT in IMTs:
+        IMLs = extract_IMLs(imlDamageStates,IMT)
+        print IMT
+        for DS in range(3):
+            PEs = extract_PEs(damageStates,DS)
+            x0 = [-2,0.6]
+            solution, flag = leastsq(residuals, x0, args=(PEs, IMLs))
+            print solution[0], solution[1], compute_correlation_coefficient(PEs,IMLs,solution)
+            
     
-    return mu, sigma
+def compute_set_mean_stddev(statistics,n):
     
-    
-#solution, flag = leastsq(residuals, x0, args=(POs, IMLs))
+    meansVector = statistics[0]
+    covarianceMatrix = statistics[2]
 
-IMLs = [0.1 , 0.2 , 0.4 , 0.6, 1.0]
-damageStates= numpy.array([[ 6. , 0. ,  1., 42.],[  4.  , 0.,   0.,  45.],[  7.,   0.,   0.,  42.],[  8.,   0.,   0.,  41.],[ 16.,   9.,   6.,  18.]])
+    setMeanStddev = numpy.random.multivariate_normal(meansVector,covarianceMatrix,n)
+    
+    return setMeanStddev
+    
+def compute_vulnerability_functions(imlDamageStates, setMeanStddev, noIMLs):
+    
+    IMLs = extract_IMLs(imlDamageStates,'PGA')
+    minIML = min(IMLs)
+    maxIML = max(IMLs)
+    imls = scipy.linspace(minIML, maxIML, noIMLs)
+    vulFunc = []
+    
+    for MeanStddev in setMeanStddev:
+        fragCurve = []
+        condPO = []
+        for i in range(0,len(MeanStddev),2):
+            mu = MeanStddev[i]
+            sigma = MeanStddev[i+1]
+            fragCurve.append(stats.lognorm.cdf(imls,sigma, scale=scipy.exp(mu)))
 
-x0=numpy.array([-2, 0.3], dtype=float)
+        for i in range(len(MeanStddev)/2+1):
+            DR = damage_ratio_provider(i)
+            if i == 0:
+                condPO.append((1-fragCurve[0])*DR)
+            elif i == len(MeanStddev)/2:
+                condPO.append((fragCurve[len(MeanStddev)/2-1])*DR)
+            else:
+                condPO.append((fragCurve[i-1]-fragCurve[i])*DR)
+        
+        vulFunc.append(sum(condPO))
+    
+    return imls, vulFunc
+    
+    
+def damage_ratio_provider(damageState):
+    
+    #Consequence function:
+    consFunc = numpy.array([[0.0001, 0.0001, 0.0001, 0.28],[5, 5, 5, 5]])
+    
+    parameters = []
+    parameters.append(consFunc[0][damageState]) #Mean of Heff/Ht
+    parameters.append(consFunc[1][damageState])   #COV of Heff/Ht
+    parameters.append(0) #Lower bound
+    parameters.append(2) #Upper bound
+    distribution = 'normal'
+    
+    #damageRatio = portfolio_builder.compute_continuous_prob_value(parameters,distribution,rvs=None) 
+    damageRatio = consFunc[0][damageState]
+    return damageRatio
+    
+    
+def compute_final_vulnerability_function(imls, vulFunc):
+    
+    setLossRatios = numpy.array(vulFunc).transpose()
+    finalCurve = []
+    for i in range(len(setLossRatios)):
+        lossRatios = setLossRatios[i]
+        expLossRatios = []
+        for j in range(len(lossRatios)):
+            expLossRatios.append(math.log(lossRatios[j]))
+            
+        mu,sigma = stats.norm.fit(expLossRatios, loc=0, scale=1)
 
-setIMLs, LS1PEs,LS2PEs,LS3PEs  = generate_synthetic_datasets(IMLs,damageStates,2)
+        mean = math.exp(mu + sigma**2/2)
+        stddev = math.sqrt((math.exp(sigma**2)-1)*math.exp(2*mu+sigma**2))
+    
+        finalCurve.append([imls[i], mean, stddev/mean])
+        
+    return finalCurve
+    
 
-compute_confident_intervals(setIMLs,LS1PEs,LS2PEs,LS3PEs,x0)
 

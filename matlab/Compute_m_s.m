@@ -139,21 +139,22 @@ yLS3=x;
 x=linspace(0.0000000001,1.5,size);
 x=log(x);
 
+
 for i=1:size
-    yLS1(i)=normcdf(x(i),-1.74822208283, 0.565799498764);
-    yLS2(i)=normcdf(x(i),-0.836008551492, 0.547161092517);
-    yLS3(i)=normcdf(x(i),-0.575038020153, 0.679433596065);
+    yLS1(i)=normcdf(x(i),-2.0356828697, 0.389898166706);
+    yLS2(i)=normcdf(x(i),-0.450243028232 ,0.679837443903);
+    yLS3(i)=normcdf(x(i),0.026741393138, 0.945118579117);
 end
 
 figure(4)
-% scatter(PEs(:,4),PEs(:,7),'*','red')
+ scatter(PEs(:,1),PEs(:,5),'*','red')
 hold on
- scatter(PEs(:,4),PEs(:,7),'o','blue')
-%scatter(PEs(:,4),PEs(:,5),'+','red')
-%plot(exp(x),yLS1,'Color','red','LineWidth',2)
+ scatter(PEs(:,1),PEs(:,7),'o','blue')
+scatter(PEs(:,1),PEs(:,6),'+','red')
+plot(exp(x),yLS1,'Color','red','LineWidth',2)
 xlim([0,1.5])
-plot(exp(x),yLS3,'blue','LineWidth',2);
-%plot(exp(x),yLS3,'red')
+plot(exp(x),yLS2,'blue','LineWidth',2);
+plot(exp(x),yLS3,'green','LineWidth',2);
 %legend('LS1','LS2','LS3','location','southeast')
 hold off
 

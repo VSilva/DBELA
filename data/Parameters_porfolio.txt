@@ -1,3 +1,1 @@
-34.057	-118.238	Frame_Wall	Low_Code	164	1	210000	5	0	inf	normal	371.13	24	0	inf	normal	400	24	0	inf	normal	2.84	8	0	inf	lognormal	1-1.1-1.2-1.3-1.4	0.46-0.15-0.25-0.12-0.02	0	inf	discrete	2.25	48	1	5.5	lognormal	12	5	10	14	lognormal
-34.057	-118.238	Frame_Wall	Low_Code	399	2	210000	5	0	inf	normal	371.13	24	0	inf	normal	400	24	0	inf	normal	2.84	8	0	inf	lognormal	1-1.1-1.2-1.3-1.4	0.46-0.15-0.25-0.12-0.02	0	inf	discrete	2.25	48	1	5.5	lognormal	12	5	10	14	lognormal
-34.057	-118.238	Frame_Wall	Low_Code	437	3	210000	5	0	inf	normal	371.13	24	0	inf	normal	400	24	0	inf	normal	2.84	8	0	inf	lognormal	1-1.1-1.2-1.3-1.4	0.46-0.15-0.25-0.12-0.02	0	inf	discrete	2.25	48	1	5.5	lognormal	12	5	10	14	lognormal
+34.057	-118.238	Bare_Frame	Low_Code	500	1	210000	1	0	inf	normal	504	13	0	inf	normal	2.84	8.1	0	inf	lognormal	1.14	14.8	0	inf	lognormal	0.588	28	0	inf	lognormal	3.37	38	0	inf	lognormal	0.6	16	0	inf	normal
